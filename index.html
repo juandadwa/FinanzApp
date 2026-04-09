@@ -15,13 +15,115 @@
   <meta name="apple-mobile-web-app-title" content="FinanzApp" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
+  <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Firebase v9 Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- ===================== AUTH SCREEN ===================== -->
+  <div class="auth-overlay" id="auth-overlay">
+    <div class="auth-bg">
+      <div class="auth-blob auth-blob-1"></div>
+      <div class="auth-blob auth-blob-2"></div>
+      <div class="auth-blob auth-blob-3"></div>
+    </div>
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="auth-logo-icon"><i class="fa-solid fa-wallet"></i></div>
+        <h1 class="auth-app-title">FinanzApp</h1>
+        <p class="auth-app-sub">Controla tus finanzas, alcanza tus metas</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">
+          Iniciar Sesión
+        </button>
+        <button class="auth-tab" id="tab-register" onclick="showAuthTab('register')">
+          Crear Cuenta
+        </button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="login-email">Correo electrónico</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-envelope auth-input-icon"></i>
+            <input type="email" id="login-email" placeholder="tu@correo.com"
+                   required autocomplete="email" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Contraseña</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock auth-input-icon"></i>
+            <input type="password" id="login-password" placeholder="••••••••"
+                   required autocomplete="current-password" />
+            <button type="button" class="btn-eye" id="eye-login"
+                    onclick="togglePasswordVis('login-password','eye-login')">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <button type="submit" class="btn-primary auth-submit" id="btn-login">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Iniciar Sesión</span>
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" class="auth-form hidden" novalidate>
+        <div class="form-group">
+          <label for="reg-name">Nombre completo</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-user auth-input-icon"></i>
+            <input type="text" id="reg-name" placeholder="Juan García"
+                   required autocomplete="name" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Correo electrónico</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-envelope auth-input-icon"></i>
+            <input type="email" id="reg-email" placeholder="tu@correo.com"
+                   required autocomplete="email" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock auth-input-icon"></i>
+            <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"
+                   required minlength="6" autocomplete="new-password" />
+            <button type="button" class="btn-eye" id="eye-register"
+                    onclick="togglePasswordVis('reg-password','eye-register')">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="auth-error" id="reg-error"></div>
+        <button type="submit" class="btn-primary auth-submit" id="btn-register">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Crear Cuenta</span>
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar" id="sidebar">
@@ -50,16 +152,20 @@
         <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
         <div class="user-info">
           <span class="user-name" id="sidebar-user-name">Mi Cuenta</span>
-          <span class="user-sub">Finanzas personales</span>
+          <span class="user-sub" id="sidebar-user-email">—</span>
         </div>
       </div>
+      <button class="btn-logout" id="btn-logout" title="Cerrar sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Cerrar sesión</span>
+      </button>
     </div>
   </aside>
 
   <!-- ===================== MAIN ===================== -->
   <main class="main-content" id="main-content">
 
-    <!-- ===== TOPBAR ===== -->
+    <!-- TOPBAR -->
     <header class="topbar">
       <button class="menu-toggle" id="menu-toggle" aria-label="Toggle sidebar">
         <i class="fa-solid fa-bars"></i>
@@ -80,7 +186,6 @@
         <p class="page-subtitle" id="dashboard-month-label">Cargando...</p>
       </div>
 
-      <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card balance-card">
           <div class="kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
@@ -113,12 +218,11 @@
         </div>
       </div>
 
-      <!-- Charts Row -->
       <div class="charts-row">
         <div class="chart-card">
           <div class="chart-header">
             <h3>Gastos por Categoría</h3>
-            <span class="chart-period" id="donut-period">Este mes</span>
+            <span class="chart-period">Este mes</span>
           </div>
           <div class="chart-container">
             <canvas id="chart-donut"></canvas>
@@ -139,7 +243,6 @@
         </div>
       </div>
 
-      <!-- Recent Transactions -->
       <div class="recent-card">
         <div class="section-header">
           <h3>Últimas Transacciones</h3>
@@ -161,7 +264,6 @@
         <p class="page-subtitle">Gestiona tus ingresos y egresos</p>
       </div>
 
-      <!-- Filters -->
       <div class="filter-bar">
         <div class="filter-group">
           <label for="filter-type">Tipo</label>
@@ -186,7 +288,6 @@
         </button>
       </div>
 
-      <!-- Summary Bar -->
       <div class="summary-bar">
         <div class="summary-item income">
           <i class="fa-solid fa-plus"></i>
@@ -211,7 +312,6 @@
         </div>
       </div>
 
-      <!-- Transactions Table -->
       <div class="table-card">
         <table class="transactions-table" id="transactions-table">
           <thead>
@@ -244,20 +344,15 @@
         <h1>Metas de Ahorro</h1>
         <p class="page-subtitle">Define objetivos y registra tu progreso</p>
       </div>
-
       <div class="savings-actions">
         <button class="btn-primary" id="btn-add-goal">
           <i class="fa-solid fa-plus"></i> Nueva Meta
         </button>
       </div>
-
       <div class="goals-grid" id="goals-grid">
         <div class="empty-state full-width">
           <i class="fa-solid fa-piggy-bank"></i>
           <p>No tienes metas de ahorro aún</p>
-          <button class="btn-primary" id="btn-add-goal-empty">
-            <i class="fa-solid fa-plus"></i> Crear mi primera meta
-          </button>
         </div>
       </div>
     </section>
@@ -274,7 +369,6 @@
         </button>
       </div>
       <form class="modal-body" id="transaction-form" novalidate>
-        <!-- Type Toggle -->
         <div class="type-toggle">
           <button type="button" class="toggle-btn active" id="toggle-income" data-type="income">
             <i class="fa-solid fa-arrow-trend-up"></i> Ingreso
@@ -283,7 +377,6 @@
             <i class="fa-solid fa-arrow-trend-down"></i> Egreso
           </button>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label for="tx-amount">Monto *</label>
@@ -297,19 +390,16 @@
             <input type="date" id="tx-date" required />
           </div>
         </div>
-
         <div class="form-group">
           <label for="tx-category">Categoría *</label>
           <select id="tx-category" required>
             <option value="" disabled selected>Selecciona una categoría</option>
           </select>
         </div>
-
         <div class="form-group">
           <label for="tx-description">Descripción</label>
           <input type="text" id="tx-description" placeholder="Ej: Compra supermercado" maxlength="80" />
         </div>
-
         <div class="modal-footer">
           <button type="button" class="btn-secondary" id="cancel-transaction-modal">Cancelar</button>
           <button type="submit" class="btn-primary" id="submit-transaction">Guardar</button>
@@ -346,7 +436,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="goal-icon">Ícono</label>
+          <label>Ícono</label>
           <div class="icon-picker" id="icon-picker"></div>
         </div>
         <div class="modal-footer">
@@ -357,7 +447,7 @@
     </div>
   </div>
 
-  <!-- ===== MODAL: ADD SAVINGS TO GOAL ===== -->
+  <!-- ===== MODAL: ADD SAVINGS ===== -->
   <div class="modal-overlay" id="modal-add-savings">
     <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
       <div class="modal-header">
@@ -389,13 +479,13 @@
 
   <script src="app.js"></script>
 
-  <!-- Service Worker Registration -->
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('[SW] Registrado:', reg.scope))
-          .catch(err => console.warn('[SW] Error:', err));
+          .then(r => console.log('[SW] Registrado:', r.scope))
+          .catch(e => console.warn('[SW] Error:', e));
       });
     }
   </script>
