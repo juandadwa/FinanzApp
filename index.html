@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinanzApp — Control de Finanzas Personales</title>
+  <meta name="description" content="Controla tus ingresos, egresos y metas de ahorro con FinanzApp. Visualiza en qué se va tu dinero." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#00d4aa" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FinanzApp" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fa-solid fa-wallet"></i></div>
+      <span class="logo-text">FinanzApp</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-page="transactions" id="nav-transactions">
+        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        <span>Transacciones</span>
+      </a>
+      <a href="#" class="nav-item" data-page="savings" id="nav-savings">
+        <i class="fa-solid fa-piggy-bank"></i>
+        <span>Metas de Ahorro</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="user-info">
+          <span class="user-name" id="sidebar-user-name">Mi Cuenta</span>
+          <span class="user-sub">Finanzas personales</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main-content" id="main-content">
+
+    <!-- ===== TOPBAR ===== -->
+    <header class="topbar">
+      <button class="menu-toggle" id="menu-toggle" aria-label="Toggle sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn-primary" id="btn-add-transaction">
+          <i class="fa-solid fa-plus"></i>
+          <span>Nueva Transacción</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== PAGE: DASHBOARD ===== -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Resumen Financiero</h1>
+        <p class="page-subtitle" id="dashboard-month-label">Cargando...</p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card balance-card">
+          <div class="kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">Balance Total</span>
+            <span class="kpi-value" id="kpi-balance">$0</span>
+          </div>
+          <div class="kpi-badge" id="kpi-balance-badge"></div>
+        </div>
+        <div class="kpi-card income-card">
+          <div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">Ingresos del Mes</span>
+            <span class="kpi-value" id="kpi-income">$0</span>
+          </div>
+        </div>
+        <div class="kpi-card expense-card">
+          <div class="kpi-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">Egresos del Mes</span>
+            <span class="kpi-value" id="kpi-expense">$0</span>
+          </div>
+        </div>
+        <div class="kpi-card savings-card">
+          <div class="kpi-icon"><i class="fa-solid fa-piggy-bank"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-label">Ahorro Total</span>
+            <span class="kpi-value" id="kpi-savings">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Gastos por Categoría</h3>
+            <span class="chart-period" id="donut-period">Este mes</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-donut"></canvas>
+            <div class="chart-center-label" id="chart-donut-center">
+              <span class="center-amount">$0</span>
+              <span class="center-text">Total gastos</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <h3>Ingresos vs Egresos</h3>
+            <span class="chart-period">Últimos 6 meses</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-bar"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="recent-card">
+        <div class="section-header">
+          <h3>Últimas Transacciones</h3>
+          <a href="#" class="link-all" id="link-all-transactions">Ver todas →</a>
+        </div>
+        <div class="recent-list" id="recent-list">
+          <div class="empty-state">
+            <i class="fa-solid fa-receipt"></i>
+            <p>No hay transacciones aún. ¡Agrega una!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: TRANSACTIONS ===== -->
+    <section class="page" id="page-transactions">
+      <div class="page-header">
+        <h1>Transacciones</h1>
+        <p class="page-subtitle">Gestiona tus ingresos y egresos</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="filter-type">Tipo</label>
+          <select id="filter-type">
+            <option value="all">Todos</option>
+            <option value="income">Ingresos</option>
+            <option value="expense">Egresos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-category">Categoría</label>
+          <select id="filter-category">
+            <option value="all">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-month">Mes</label>
+          <input type="month" id="filter-month" />
+        </div>
+        <button class="btn-secondary" id="btn-clear-filters">
+          <i class="fa-solid fa-xmark"></i> Limpiar
+        </button>
+      </div>
+
+      <!-- Summary Bar -->
+      <div class="summary-bar">
+        <div class="summary-item income">
+          <i class="fa-solid fa-plus"></i>
+          <div>
+            <span class="summary-label">Ingresos filtrados</span>
+            <span class="summary-value" id="filtered-income">$0</span>
+          </div>
+        </div>
+        <div class="summary-item expense">
+          <i class="fa-solid fa-minus"></i>
+          <div>
+            <span class="summary-label">Egresos filtrados</span>
+            <span class="summary-value" id="filtered-expense">$0</span>
+          </div>
+        </div>
+        <div class="summary-item balance">
+          <i class="fa-solid fa-equals"></i>
+          <div>
+            <span class="summary-label">Balance filtrado</span>
+            <span class="summary-value" id="filtered-balance">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
+      <div class="table-card">
+        <table class="transactions-table" id="transactions-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th>Categoría</th>
+              <th>Tipo</th>
+              <th class="text-right">Monto</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="transactions-tbody">
+            <tr>
+              <td colspan="6" class="empty-row">
+                <div class="empty-state">
+                  <i class="fa-solid fa-receipt"></i>
+                  <p>No hay transacciones todavía</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: SAVINGS ===== -->
+    <section class="page" id="page-savings">
+      <div class="page-header">
+        <h1>Metas de Ahorro</h1>
+        <p class="page-subtitle">Define objetivos y registra tu progreso</p>
+      </div>
+
+      <div class="savings-actions">
+        <button class="btn-primary" id="btn-add-goal">
+          <i class="fa-solid fa-plus"></i> Nueva Meta
+        </button>
+      </div>
+
+      <div class="goals-grid" id="goals-grid">
+        <div class="empty-state full-width">
+          <i class="fa-solid fa-piggy-bank"></i>
+          <p>No tienes metas de ahorro aún</p>
+          <button class="btn-primary" id="btn-add-goal-empty">
+            <i class="fa-solid fa-plus"></i> Crear mi primera meta
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODAL: ADD TRANSACTION ===== -->
+  <div class="modal-overlay" id="modal-transaction">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-transaction-title">
+      <div class="modal-header">
+        <h2 id="modal-transaction-title">Nueva Transacción</h2>
+        <button class="modal-close" id="close-transaction-modal" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form class="modal-body" id="transaction-form" novalidate>
+        <!-- Type Toggle -->
+        <div class="type-toggle">
+          <button type="button" class="toggle-btn active" id="toggle-income" data-type="income">
+            <i class="fa-solid fa-arrow-trend-up"></i> Ingreso
+          </button>
+          <button type="button" class="toggle-btn" id="toggle-expense" data-type="expense">
+            <i class="fa-solid fa-arrow-trend-down"></i> Egreso
+          </button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tx-amount">Monto *</label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
+              <input type="number" id="tx-amount" placeholder="0.00" min="0.01" step="0.01" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="tx-date">Fecha *</label>
+            <input type="date" id="tx-date" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tx-category">Categoría *</label>
+          <select id="tx-category" required>
+            <option value="" disabled selected>Selecciona una categoría</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tx-description">Descripción</label>
+          <input type="text" id="tx-description" placeholder="Ej: Compra supermercado" maxlength="80" />
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancel-transaction-modal">Cancelar</button>
+          <button type="submit" class="btn-primary" id="submit-transaction">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: ADD GOAL ===== -->
+  <div class="modal-overlay" id="modal-goal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-goal-title">
+      <div class="modal-header">
+        <h2 id="modal-goal-title">Nueva Meta de Ahorro</h2>
+        <button class="modal-close" id="close-goal-modal" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form class="modal-body" id="goal-form" novalidate>
+        <div class="form-group">
+          <label for="goal-name">Nombre de la meta *</label>
+          <input type="text" id="goal-name" placeholder="Ej: Viaje a la playa" maxlength="50" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="goal-target">Monto objetivo *</label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
+              <input type="number" id="goal-target" placeholder="0.00" min="1" step="0.01" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="goal-deadline">Fecha límite</label>
+            <input type="date" id="goal-deadline" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="goal-icon">Ícono</label>
+          <div class="icon-picker" id="icon-picker"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancel-goal-modal">Cancelar</button>
+          <button type="submit" class="btn-primary">Crear Meta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: ADD SAVINGS TO GOAL ===== -->
+  <div class="modal-overlay" id="modal-add-savings">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
+      <div class="modal-header">
+        <h2 id="modal-savings-title">Agregar Ahorro</h2>
+        <button class="modal-close" id="close-savings-modal" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form class="modal-body" id="savings-form" novalidate>
+        <p class="modal-desc" id="savings-goal-name"></p>
+        <div class="form-group">
+          <label for="savings-amount">Monto a agregar *</label>
+          <div class="input-with-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" id="savings-amount" placeholder="0.00" min="0.01" step="0.01" required />
+          </div>
+        </div>
+        <input type="hidden" id="savings-goal-id" />
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancel-savings-modal">Cancelar</button>
+          <button type="submit" class="btn-primary">Agregar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[SW] Registrado:', reg.scope))
+          .catch(err => console.warn('[SW] Error:', err));
+      });
+    }
+  </script>
+</body>
+</html>
