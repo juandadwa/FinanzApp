@@ -106,7 +106,7 @@
         </div>
         <div class="form-group">
           <label for="reg-password">Contraseña</label>
-          <div class="auth-input-wrap">
+          <div class="auth-input-wrap" id="wrap-reg-password">
             <i class="fa-solid fa-lock auth-input-icon"></i>
             <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"
                    required minlength="6" autocomplete="new-password" />
@@ -116,12 +116,63 @@
             </button>
           </div>
         </div>
+        <div class="form-group">
+          <label for="reg-confirm-password">Confirmar contraseña</label>
+          <div class="auth-input-wrap" id="wrap-reg-confirm">
+            <i class="fa-solid fa-shield-halved auth-input-icon"></i>
+            <input type="password" id="reg-confirm-password" placeholder="Repite tu contraseña"
+                   required autocomplete="new-password" />
+            <button type="button" class="btn-eye" id="eye-confirm"
+                    onclick="togglePasswordVis('reg-confirm-password','eye-confirm')">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div class="password-match-hint" id="password-match-hint"></div>
+        </div>
         <div class="auth-error" id="reg-error"></div>
         <button type="submit" class="btn-primary auth-submit" id="btn-register">
           <i class="fa-solid fa-user-plus"></i>
           <span>Crear Cuenta</span>
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- ===================== VERIFICATION SCREEN ===================== -->
+  <div class="auth-overlay" id="verification-screen">
+    <div class="auth-bg">
+      <div class="auth-blob auth-blob-1"></div>
+      <div class="auth-blob auth-blob-2"></div>
+      <div class="auth-blob auth-blob-3"></div>
+    </div>
+    <div class="auth-card verify-card">
+      <div class="verify-icon-wrap">
+        <span class="verify-emoji">✉️</span>
+        <div class="verify-ping"></div>
+      </div>
+      <h2 class="verify-title">Verifica tu correo</h2>
+      <p class="verify-desc">
+        Enviamos un link de verificación a
+        <strong id="verify-email-shown">tu correo</strong>.
+        Haz clic en el link del correo para activar tu cuenta.
+      </p>
+      <p class="verify-hint">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Revisa también la carpeta de <strong>spam</strong> si no lo ves.
+      </p>
+      <div class="verify-actions">
+        <button class="btn-primary auth-submit" id="btn-check-verified">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Ya verifiqué mi correo</span>
+        </button>
+        <button class="btn-secondary verify-resend" id="btn-resend-email">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Reenviar correo</span>
+        </button>
+      </div>
+      <button class="verify-back-btn" id="btn-back-to-login">
+        <i class="fa-solid fa-arrow-left"></i> Volver al inicio de sesión
+      </button>
     </div>
   </div>
 

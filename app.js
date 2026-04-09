@@ -128,13 +128,26 @@ function renderCurrentPage() {
 // =============================================
 // AUTH STATE OBSERVER
 // =============================================
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   if (user) {
-    currentUser = user;
+    // Refresca el estado del usuario desde Firebase
+    await user.reload().catch(() => {});
+    const freshUser = auth.currentUser;
+
+    if (!freshUser.emailVerified) {
+      // Correo no verificado -> mostrar pantalla de verificación
+      hideAuthScreen();
+      hideVerificationScreen(); // reset first
+      showVerificationScreen(freshUser);
+      return;
+    }
+
+    // Verificado -> mostrar app
+    currentUser = freshUser;
     hideAuthScreen();
-    document.getElementById('sidebar-user-name').textContent  = user.displayName || 'Mi Cuenta';
-    document.getElementById('sidebar-user-email').textContent = user.email;
-    // Set default month filter
+    hideVerificationScreen();
+    document.getElementById('sidebar-user-name').textContent  = freshUser.displayName || 'Mi Cuenta';
+    document.getElementById('sidebar-user-email').textContent = freshUser.email;
     document.getElementById('filter-month').value = getCurrentMonthKey();
     state.filters.month = getCurrentMonthKey();
     setupListeners();
@@ -142,6 +155,7 @@ auth.onAuthStateChanged(user => {
   } else {
     currentUser = null;
     clearListeners();
+    hideVerificationScreen();
     showAuthScreen();
     if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
     if (chartBar)   { chartBar.destroy();   chartBar   = null; }
@@ -157,6 +171,15 @@ function showAuthScreen() {
 
 function hideAuthScreen() {
   document.getElementById('auth-overlay').classList.remove('open');
+}
+
+function showVerificationScreen(user) {
+  document.getElementById('verify-email-shown').textContent = user.email;
+  document.getElementById('verification-screen').classList.add('open');
+}
+
+function hideVerificationScreen() {
+  document.getElementById('verification-screen').classList.remove('open');
 }
 
 function showAuthTab(tab) {
@@ -215,6 +238,28 @@ function showAuthError(elId, code) {
 // AUTH FORM HANDLERS
 // =============================================
 function setupAuthForms() {
+  // Live password-match validation
+  const regPassword = document.getElementById('reg-password');
+  const regConfirm  = document.getElementById('reg-confirm-password');
+  const matchHint   = document.getElementById('password-match-hint');
+  const wrapConfirm = document.getElementById('wrap-reg-confirm');
+
+  function checkPasswordMatch() {
+    const pw  = regPassword.value;
+    const cpw = regConfirm.value;
+    if (!cpw) { matchHint.textContent = ''; wrapConfirm.classList.remove('input-ok','input-err'); return; }
+    if (pw === cpw) {
+      matchHint.innerHTML = '<i class="fa-solid fa-check"></i> Las contraseñas coinciden';
+      matchHint.className = 'password-match-hint match-ok';
+      wrapConfirm.classList.add('input-ok'); wrapConfirm.classList.remove('input-err');
+    } else {
+      matchHint.innerHTML = '<i class="fa-solid fa-xmark"></i> Las contraseñas no coinciden';
+      matchHint.className = 'password-match-hint match-err';
+      wrapConfirm.classList.add('input-err'); wrapConfirm.classList.remove('input-ok');
+    }
+  }
+  regPassword.addEventListener('input', checkPasswordMatch);
+  regConfirm.addEventListener('input', checkPasswordMatch);
   // Login
   document.getElementById('form-login').addEventListener('submit', async e => {
     e.preventDefault();
@@ -236,18 +281,28 @@ function setupAuthForms() {
     const name     = document.getElementById('reg-name').value.trim();
     const email    = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
+    const confirm  = document.getElementById('reg-confirm-password').value;
     document.getElementById('reg-error').textContent = '';
 
     if (!name) { showAuthError('reg-error', 'auth/invalid-name'); return; }
+    if (password !== confirm) {
+      document.getElementById('reg-error').textContent = 'Las contraseñas no coinciden.';
+      return;
+    }
 
     setAuthLoading('btn-register', true);
     try {
       const { user } = await auth.createUserWithEmailAndPassword(email, password);
       await user.updateProfile({ displayName: name });
-      // Create user profile doc
+      // Guardar perfil en Firestore
       await db.collection('users').doc(user.uid).set({
         name, email, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
+      // Enviar correo de verificación
+      await user.sendEmailVerification();
+      // Mostrar pantalla de verificación
+      hideAuthScreen();
+      showVerificationScreen(user);
     } catch (err) {
       showAuthError('reg-error', err.code);
       setAuthLoading('btn-register', false);
@@ -258,6 +313,55 @@ function setupAuthForms() {
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await auth.signOut();
     showToast('Sesión cerrada', 'info');
+  });
+
+  // ---- Verification Screen buttons ----
+  // "Ya verifiqué mi correo" -> reload user y verificar
+  document.getElementById('btn-check-verified').addEventListener('click', async () => {
+    const btn  = document.getElementById('btn-check-verified');
+    const span = btn.querySelector('span');
+    btn.disabled = true;
+    span.textContent = 'Verificando...';
+    try {
+      await auth.currentUser.reload();
+      const user = auth.currentUser;
+      if (user.emailVerified) {
+        // onAuthStateChanged se disparará automáticamente y mostrará la app
+        showToast('✅ Correo verificado. ¡Bienvenido!', 'success');
+      } else {
+        showToast('Aún no hemos recibido la verificación. Revisa tu correo.', 'error');
+        span.textContent = 'Ya verifiqué mi correo';
+        btn.disabled = false;
+      }
+    } catch(e) {
+      showToast('Error al verificar. Intenta de nuevo.', 'error');
+      span.textContent = 'Ya verifiqué mi correo';
+      btn.disabled = false;
+    }
+  });
+
+  // "Reenviar correo"
+  document.getElementById('btn-resend-email').addEventListener('click', async () => {
+    const btn  = document.getElementById('btn-resend-email');
+    const span = btn.querySelector('span');
+    btn.disabled = true;
+    span.textContent = 'Enviando...';
+    try {
+      await auth.currentUser.sendEmailVerification();
+      showToast('Correo reenviado. Revisa tu bandeja.', 'success');
+    } catch(e) {
+      showToast('Espera un momento antes de reenviar.', 'error');
+    } finally {
+      setTimeout(() => { span.textContent = 'Reenviar correo'; btn.disabled = false; }, 30000);
+    }
+  });
+
+  // "Volver al inicio de sesión"
+  document.getElementById('btn-back-to-login').addEventListener('click', async () => {
+    await auth.signOut();
+    hideVerificationScreen();
+    showAuthScreen();
+    showAuthTab('login');
   });
 }
 
