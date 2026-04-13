@@ -3,7 +3,7 @@
    Estrategia: Cache First + Network Fallback
    ============================================= */
 
-const CACHE_NAME = 'finanzapp-v3';
+const CACHE_NAME = 'finanzapp-v4';
 
 const ASSETS_TO_CACHE = [
   './',
