@@ -1550,9 +1550,10 @@ select option { background: var(--bg-card); }
 }
 
 /* =============================================
-   LOGOUT BUTTON
+   LOGOUT / DELETE ACCOUNT BUTTONS
    ============================================= */
-.btn-logout {
+.btn-logout,
+.btn-delete-account {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1570,6 +1571,7 @@ select option { background: var(--bg-card); }
   margin-top: 6px;
   overflow: hidden;
   white-space: nowrap;
+  text-align: left;
 }
 
 .btn-logout:hover {
@@ -1578,8 +1580,18 @@ select option { background: var(--bg-card); }
   color: var(--accent-expense);
 }
 
-.sidebar.collapsed .btn-logout span { display: none; }
-.sidebar.collapsed .btn-logout      { justify-content: center; }
+/* Eliminar cuenta — rojo más intenso en hover para indicar acción destructiva */
+.btn-delete-account:hover {
+  background: rgba(248,113,113,0.15);
+  border-color: rgba(248,113,113,0.35);
+  color: var(--accent-expense);
+}
+
+.sidebar.collapsed .btn-logout span,
+.sidebar.collapsed .btn-delete-account span { display: none; }
+
+.sidebar.collapsed .btn-logout,
+.sidebar.collapsed .btn-delete-account      { justify-content: center; }
 
 @media (max-width: 420px) {
   .auth-card { padding: 28px 20px; margin: 16px; }
