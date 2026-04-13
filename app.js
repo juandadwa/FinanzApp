@@ -80,6 +80,8 @@ let state = {
   selectedGoalIcon:      GOAL_ICONS[0],
   currentTransactionType:'income',
   currentPage:           'dashboard',
+  editingTransactionId:  null,
+  editingGoalId:         null,
 };
 
 // =============================================
@@ -313,6 +315,69 @@ function setupAuthForms() {
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await auth.signOut();
     showToast('Sesión cerrada', 'info');
+  });
+
+  // ---- Delete Account ----
+  document.getElementById('btn-delete-account').addEventListener('click', () => {
+    document.getElementById('delete-password').value = '';
+    document.getElementById('delete-error').textContent = '';
+    document.getElementById('modal-delete-account').classList.add('open');
+  });
+
+  document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+    const password = document.getElementById('delete-password').value;
+    const errEl    = document.getElementById('delete-error');
+    const btn      = document.getElementById('btn-confirm-delete');
+    const span     = btn.querySelector('span');
+    errEl.textContent = '';
+
+    if (!password) {
+      errEl.textContent = 'Debes ingresar tu contraseña para confirmar.';
+      return;
+    }
+
+    btn.disabled = true;
+    span.textContent = 'Eliminando...';
+
+    try {
+      const user       = auth.currentUser;
+      const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+
+      // 1. Re-autenticar (Firebase lo requiere antes de borrar la cuenta)
+      await user.reauthenticateWithCredential(credential);
+
+      // 2. Borrar todas las transacciones del usuario
+      const txSnap = await txCol().get();
+      const batch1 = db.batch();
+      txSnap.docs.forEach(d => batch1.delete(d.ref));
+      await batch1.commit();
+
+      // 3. Borrar todas las metas del usuario
+      const goalsSnap = await goalsCol().get();
+      const batch2    = db.batch();
+      goalsSnap.docs.forEach(d => batch2.delete(d.ref));
+      await batch2.commit();
+
+      // 4. Borrar el perfil del usuario
+      await db.collection('users').doc(user.uid).delete();
+
+      // 5. Borrar la cuenta de Firebase Auth
+      await user.delete();
+
+      // onAuthStateChanged se dispara solo -> muestra pantalla de login
+      showToast('Cuenta eliminada permanentemente.', 'info');
+    } catch (err) {
+      console.error('[DeleteAccount]', err);
+      const mensajes = {
+        'auth/wrong-password':    'Contraseña incorrecta. Intenta de nuevo.',
+        'auth/invalid-credential':'Contraseña incorrecta. Intenta de nuevo.',
+        'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
+        'auth/requires-recent-login': 'Sesión caducada. Cierra sesión y vuelve a entrar.',
+      };
+      errEl.textContent = mensajes[err.code] || 'Error al eliminar la cuenta. Intenta de nuevo.';
+      btn.disabled = false;
+      span.textContent = 'Eliminar para siempre';
+    }
   });
 
   // ---- Verification Screen buttons ----
@@ -599,7 +664,10 @@ function renderTransactions() {
       <td><span class="badge category">${cat.icon} ${cat.label}</span></td>
       <td><span class="badge ${tx.type}">${tx.type==='income'?'▲ Ingreso':'▼ Egreso'}</span></td>
       <td class="text-right"><span class="tx-amount ${tx.type}">${sign}${formatCurrency(tx.amount)}</span></td>
-      <td><button class="btn-icon" onclick="deleteTransaction('${tx.id}')" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button></td>
+      <td class="tx-actions">
+        <button class="btn-icon btn-edit" onclick="openEditTransactionModal('${tx.id}')" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button class="btn-icon" onclick="deleteTransaction('${tx.id}')" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -653,6 +721,7 @@ function renderGoals() {
       <div class="goal-percent">${pct.toFixed(1)}% completado · Faltan ${formatCurrency(Math.max(0,goal.target-goal.current))}</div>
       <div class="goal-actions">
         ${!done ? `<button class="btn-secondary btn-add-savings" onclick="openSavingsModal('${goal.id}')"><i class="fa-solid fa-plus"></i> Agregar ahorro</button>` : ''}
+        <button class="btn-icon btn-edit" onclick="openEditGoalModal('${goal.id}')" title="Editar meta"><i class="fa-solid fa-pen-to-square"></i></button>
         <button class="btn-icon" onclick="deleteGoal('${goal.id}')" title="Eliminar meta"><i class="fa-solid fa-trash-can"></i></button>
       </div>
     </div>`;
@@ -672,13 +741,35 @@ async function deleteGoal(id) {
 // MODALS
 // =============================================
 function openTransactionModal() {
+  state.editingTransactionId = null;
   document.getElementById('tx-amount').value      = '';
   document.getElementById('tx-description').value = '';
   document.getElementById('tx-date').value        = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-transaction-title').textContent = 'Nueva Transacción';
+  document.getElementById('submit-transaction').textContent      = 'Guardar';
   setTransactionType('income');
   document.getElementById('modal-transaction').classList.add('open');
 }
-function closeTransactionModal() { document.getElementById('modal-transaction').classList.remove('open'); }
+
+function openEditTransactionModal(id) {
+  const tx = state.transactions.find(t => t.id === id);
+  if (!tx) return;
+  state.editingTransactionId = id;
+  document.getElementById('modal-transaction-title').textContent = 'Editar Transacción';
+  document.getElementById('submit-transaction').textContent      = 'Actualizar';
+  setTransactionType(tx.type);
+  document.getElementById('tx-amount').value      = tx.amount;
+  document.getElementById('tx-date').value        = tx.date;
+  document.getElementById('tx-description').value = tx.description || '';
+  // Set category after populating options
+  const catSel = document.getElementById('tx-category');
+  catSel.value = tx.category;
+  document.getElementById('modal-transaction').classList.add('open');
+}
+function closeTransactionModal() {
+  state.editingTransactionId = null;
+  document.getElementById('modal-transaction').classList.remove('open');
+}
 
 function setTransactionType(type) {
   state.currentTransactionType = type;
@@ -690,14 +781,35 @@ function setTransactionType(type) {
 }
 
 function openGoalModal() {
+  state.editingGoalId = null;
   document.getElementById('goal-name').value     = '';
   document.getElementById('goal-target').value   = '';
   document.getElementById('goal-deadline').value = '';
+  document.getElementById('modal-goal-title').textContent = 'Nueva Meta de Ahorro';
+  document.getElementById('submit-goal-btn').textContent  = 'Crear Meta';
   state.selectedGoalIcon = GOAL_ICONS[0];
   renderIconPicker();
   document.getElementById('modal-goal').classList.add('open');
 }
-function closeGoalModal() { document.getElementById('modal-goal').classList.remove('open'); }
+
+function openEditGoalModal(id) {
+  const goal = state.goals.find(g => g.id === id);
+  if (!goal) return;
+  state.editingGoalId = id;
+  document.getElementById('modal-goal-title').textContent = 'Editar Meta';
+  document.getElementById('submit-goal-btn').textContent  = 'Actualizar';
+  document.getElementById('goal-name').value     = goal.name;
+  document.getElementById('goal-target').value   = goal.target;
+  document.getElementById('goal-deadline').value = goal.deadline || '';
+  state.selectedGoalIcon = goal.icon || GOAL_ICONS[0];
+  renderIconPicker();
+  document.getElementById('modal-goal').classList.add('open');
+}
+
+function closeGoalModal() {
+  state.editingGoalId = null;
+  document.getElementById('modal-goal').classList.remove('open');
+}
 
 function renderIconPicker() {
   document.getElementById('icon-picker').innerHTML = GOAL_ICONS.map(ic =>
@@ -717,7 +829,7 @@ function openSavingsModal(goalId) {
 function closeSavingsModal() { document.getElementById('modal-add-savings').classList.remove('open'); }
 
 function setupModalOverlayClose() {
-  ['modal-transaction','modal-goal','modal-add-savings'].forEach(id => {
+  ['modal-transaction','modal-goal','modal-add-savings','modal-delete-account'].forEach(id => {
     document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     });
@@ -741,12 +853,22 @@ async function handleTransactionSubmit(e) {
   const btn = document.getElementById('submit-transaction');
   btn.disabled = true;
   try {
-    await txCol().add({
-      type: state.currentTransactionType, amount, date, category: cat,
-      description: desc, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    closeTransactionModal();
-    showToast(`${state.currentTransactionType==='income'?'Ingreso':'Egreso'} registrado exitosamente`, 'success');
+    if (state.editingTransactionId) {
+      // MODO EDICIÓN
+      await txCol().doc(state.editingTransactionId).update({
+        type: state.currentTransactionType, amount, date, category: cat, description: desc,
+      });
+      closeTransactionModal();
+      showToast('Transacción actualizada exitosamente', 'success');
+    } else {
+      // MODO CREACIÓN
+      await txCol().add({
+        type: state.currentTransactionType, amount, date, category: cat,
+        description: desc, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      closeTransactionModal();
+      showToast(`${state.currentTransactionType==='income'?'Ingreso':'Egreso'} registrado exitosamente`, 'success');
+    }
   } catch(err) {
     showToast('Error al guardar. Intenta de nuevo.', 'error');
     console.error(err);
@@ -761,20 +883,33 @@ async function handleGoalSubmit(e) {
   const target   = parseFloat(document.getElementById('goal-target').value);
   const deadline = document.getElementById('goal-deadline').value;
 
-  if (!name)           { showToast('Ingresa un nombre para la meta','error'); return; }
+  if (!name)              { showToast('Ingresa un nombre para la meta','error'); return; }
   if (!target||target<=0) { showToast('Ingresa un monto objetivo válido','error'); return; }
 
   try {
-    await goalsCol().add({
-      name, target, current: 0,
-      deadline: deadline || null,
-      icon: state.selectedGoalIcon,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    closeGoalModal();
-    showToast('¡Meta de ahorro creada!', 'success');
+    if (state.editingGoalId) {
+      // MODO EDICIÓN (preserva el monto ahorrado actual)
+      await goalsCol().doc(state.editingGoalId).update({
+        name, target,
+        deadline: deadline || null,
+        icon: state.selectedGoalIcon,
+      });
+      closeGoalModal();
+      showToast('Meta actualizada exitosamente', 'success');
+    } else {
+      // MODO CREACIÓN
+      await goalsCol().add({
+        name, target, current: 0,
+        deadline: deadline || null,
+        icon: state.selectedGoalIcon,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      closeGoalModal();
+      showToast('¡Meta de ahorro creada!', 'success');
+    }
   } catch(err) {
-    showToast('Error al crear meta.', 'error');
+    showToast('Error al guardar la meta.', 'error');
+    console.error(err);
   }
 }
 
@@ -859,6 +994,10 @@ function init() {
   document.getElementById('cancel-goal-modal').addEventListener('click', closeGoalModal);
   document.getElementById('close-savings-modal').addEventListener('click', closeSavingsModal);
   document.getElementById('cancel-savings-modal').addEventListener('click', closeSavingsModal);
+  document.getElementById('close-delete-modal').addEventListener('click', () =>
+    document.getElementById('modal-delete-account').classList.remove('open'));
+  document.getElementById('cancel-delete-modal').addEventListener('click', () =>
+    document.getElementById('modal-delete-account').classList.remove('open'));
 
   // Type toggles
   document.getElementById('toggle-income').addEventListener('click',  () => setTransactionType('income'));

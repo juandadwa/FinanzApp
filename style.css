@@ -999,6 +999,20 @@ select option { background: var(--bg-card); }
   border-color: rgba(248,113,113,0.3);
 }
 
+/* Edit button — hover in accent teal instead of red */
+.btn-icon.btn-edit:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: rgba(0,212,170,0.35);
+}
+
+/* Action cell in transactions table */
+.tx-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .btn-add-savings {
   flex: 1;
   justify-content: center;
