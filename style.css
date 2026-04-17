@@ -1472,34 +1472,117 @@ select option { background: var(--bg-card); }
   margin-top: 4px;
 }
 
-/* Tabs */
-.auth-tabs {
-  display: flex;
-  background: var(--bg-input);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  margin-bottom: 24px;
+/* ── Auth Steps ── */
+.auth-step {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.2s ease;
 }
 
-.auth-tab {
-  flex: 1;
-  padding: 9px 16px;
+.auth-step.active { display: flex; }
+
+.auth-step-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.auth-step-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
   border: none;
-  border-radius: 6px;
-  background: transparent;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition);
+  padding: 0;
+  transition: color var(--transition);
+  margin-bottom: 4px;
 }
 
-.auth-tab.active {
-  background: var(--bg-elevated);
-  color: var(--accent);
-  box-shadow: 0 0 10px rgba(0,212,170,0.1);
+.auth-step-back:hover { color: var(--accent); }
+
+/* ── Choice buttons (paso 1) ── */
+.btn-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
 }
+
+.btn-choice:hover {
+  background: var(--bg-elevated);
+  transform: translateX(3px);
+}
+
+.btn-choice-primary:hover {
+  border-color: rgba(0,212,170,0.35);
+  box-shadow: 0 0 16px rgba(0,212,170,0.07);
+}
+
+.btn-choice-secondary:hover {
+  border-color: rgba(96,165,250,0.35);
+  box-shadow: 0 0 16px rgba(96,165,250,0.07);
+}
+
+.choice-icon-wrap {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.btn-choice-primary .choice-icon-wrap {
+  background: rgba(0,212,170,0.12);
+  color: var(--accent);
+}
+
+.btn-choice-secondary .choice-icon-wrap {
+  background: rgba(96,165,250,0.12);
+  color: var(--accent-balance);
+}
+
+.choice-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.choice-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.choice-arrow {
+  color: var(--text-muted);
+  font-size: 12px;
+  transition: transform var(--transition);
+}
+
+.btn-choice:hover .choice-arrow { transform: translateX(3px); }
 
 /* Auth Forms */
 .auth-form {

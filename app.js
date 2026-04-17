@@ -209,25 +209,10 @@ function hideAnonymousBanner() {
   document.getElementById('anon-banner').style.display = 'none';
 }
 
-function showAuthTab(tab) {
-  const loginForm = document.getElementById('form-login');
-  const regForm   = document.getElementById('form-register');
-  const tabLogin  = document.getElementById('tab-login');
-  const tabReg    = document.getElementById('tab-register');
-
-  if (tab === 'login') {
-    loginForm.classList.remove('hidden');
-    regForm.classList.add('hidden');
-    tabLogin.classList.add('active');
-    tabReg.classList.remove('active');
-    document.getElementById('login-error').textContent = '';
-  } else {
-    loginForm.classList.add('hidden');
-    regForm.classList.remove('hidden');
-    tabLogin.classList.remove('active');
-    tabReg.classList.add('active');
-    document.getElementById('reg-error').textContent = '';
-  }
+function showAuthStep(stepId) {
+  document.querySelectorAll('.auth-step').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('auth-step-' + stepId);
+  if (el) el.classList.add('active');
 }
 
 function togglePasswordVis(inputId, btnId) {
@@ -517,12 +502,12 @@ function setupAuthForms() {
     }
   });
 
-  // "Volver al inicio de sesión"
+  // "Volver al inicio de sesión" (desde pantalla de verificación)
   document.getElementById('btn-back-to-login').addEventListener('click', async () => {
     await auth.signOut();
     hideVerificationScreen();
     showAuthScreen();
-    showAuthTab('login');
+    showAuthStep('main');
   });
 }
 
@@ -1079,6 +1064,18 @@ function init() {
   });
   document.getElementById('link-all-transactions')?.addEventListener('click', e => {
     e.preventDefault(); navigateTo('transactions');
+  });
+
+  // Step navigation
+  document.getElementById('btn-show-register').addEventListener('click', () => showAuthStep('register'));
+  document.getElementById('btn-show-login').addEventListener('click', () => showAuthStep('login'));
+  document.getElementById('btn-back-from-login').addEventListener('click', () => {
+    document.getElementById('login-error').textContent = '';
+    showAuthStep('main');
+  });
+  document.getElementById('btn-back-from-register').addEventListener('click', () => {
+    document.getElementById('reg-error').textContent = '';
+    showAuthStep('main');
   });
 
   // Topbar + Modals

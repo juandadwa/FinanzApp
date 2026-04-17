@@ -40,113 +40,134 @@
       <div class="auth-blob auth-blob-3"></div>
     </div>
     <div class="auth-card">
-      <!-- Logo -->
+
+      <!-- Logo — siempre visible -->
       <div class="auth-logo">
         <div class="auth-logo-icon"><i class="fa-solid fa-wallet"></i></div>
         <h1 class="auth-app-title">FinanzApp</h1>
         <p class="auth-app-sub">Controla tus finanzas, alcanza tus metas</p>
       </div>
 
-      <!-- Tabs -->
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">
-          Iniciar Sesión
+      <!-- ── PASO 1: Elegir acción ── -->
+      <div class="auth-step active" id="auth-step-main">
+        <button class="btn-choice btn-choice-primary" id="btn-show-register">
+          <div class="choice-icon-wrap"><i class="fa-solid fa-user-plus"></i></div>
+          <div class="choice-text">
+            <span class="choice-title">Crear Cuenta</span>
+            <span class="choice-sub">Guarda tus datos en la nube</span>
+          </div>
+          <i class="fa-solid fa-chevron-right choice-arrow"></i>
         </button>
-        <button class="auth-tab" id="tab-register" onclick="showAuthTab('register')">
-          Crear Cuenta
+
+        <button class="btn-choice btn-choice-secondary" id="btn-show-login">
+          <div class="choice-icon-wrap"><i class="fa-solid fa-right-to-bracket"></i></div>
+          <div class="choice-text">
+            <span class="choice-title">Iniciar Sesión</span>
+            <span class="choice-sub">Ya tengo una cuenta</span>
+          </div>
+          <i class="fa-solid fa-chevron-right choice-arrow"></i>
         </button>
+
+        <div class="auth-divider"><span>o</span></div>
+
+        <button class="btn-guest" id="btn-guest-login">
+          <i class="fa-solid fa-user-secret"></i>
+          <span>Continuar como invitado</span>
+        </button>
+        <p class="guest-disclaimer">Sin cuenta — tus datos solo duran esta sesión</p>
       </div>
 
-      <!-- Login Form -->
-      <form id="form-login" class="auth-form" novalidate>
-        <div class="form-group">
-          <label for="login-email">Correo electrónico</label>
-          <div class="auth-input-wrap">
-            <i class="fa-solid fa-envelope auth-input-icon"></i>
-            <input type="email" id="login-email" placeholder="tu@correo.com"
-                   required autocomplete="email" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Contraseña</label>
-          <div class="auth-input-wrap">
-            <i class="fa-solid fa-lock auth-input-icon"></i>
-            <input type="password" id="login-password" placeholder="••••••••"
-                   required autocomplete="current-password" />
-            <button type="button" class="btn-eye" id="eye-login"
-                    onclick="togglePasswordVis('login-password','eye-login')">
-              <i class="fa-solid fa-eye"></i>
-            </button>
-          </div>
-        </div>
-        <div class="auth-error" id="login-error"></div>
-        <button type="submit" class="btn-primary auth-submit" id="btn-login">
-          <i class="fa-solid fa-right-to-bracket"></i>
-          <span>Iniciar Sesión</span>
+      <!-- ── PASO 2: Iniciar Sesión ── -->
+      <div class="auth-step" id="auth-step-login">
+        <button class="auth-step-back" id="btn-back-from-login">
+          <i class="fa-solid fa-arrow-left"></i> Volver
         </button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="form-register" class="auth-form hidden" novalidate>
-        <div class="form-group">
-          <label for="reg-name">Nombre completo</label>
-          <div class="auth-input-wrap">
-            <i class="fa-solid fa-user auth-input-icon"></i>
-            <input type="text" id="reg-name" placeholder="Juan García"
-                   required autocomplete="name" />
+        <p class="auth-step-title">Iniciar Sesión</p>
+        <form id="form-login" class="auth-form" novalidate>
+          <div class="form-group">
+            <label for="login-email">Correo electrónico</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-envelope auth-input-icon"></i>
+              <input type="email" id="login-email" placeholder="tu@correo.com"
+                     required autocomplete="email" />
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="reg-email">Correo electrónico</label>
-          <div class="auth-input-wrap">
-            <i class="fa-solid fa-envelope auth-input-icon"></i>
-            <input type="email" id="reg-email" placeholder="tu@correo.com"
-                   required autocomplete="email" />
+          <div class="form-group">
+            <label for="login-password">Contraseña</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-lock auth-input-icon"></i>
+              <input type="password" id="login-password" placeholder="••••••••"
+                     required autocomplete="current-password" />
+              <button type="button" class="btn-eye" id="eye-login"
+                      onclick="togglePasswordVis('login-password','eye-login')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="reg-password">Contraseña</label>
-          <div class="auth-input-wrap" id="wrap-reg-password">
-            <i class="fa-solid fa-lock auth-input-icon"></i>
-            <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"
-                   required minlength="6" autocomplete="new-password" />
-            <button type="button" class="btn-eye" id="eye-register"
-                    onclick="togglePasswordVis('reg-password','eye-register')">
-              <i class="fa-solid fa-eye"></i>
-            </button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="reg-confirm-password">Confirmar contraseña</label>
-          <div class="auth-input-wrap" id="wrap-reg-confirm">
-            <i class="fa-solid fa-shield-halved auth-input-icon"></i>
-            <input type="password" id="reg-confirm-password" placeholder="Repite tu contraseña"
-                   required autocomplete="new-password" />
-            <button type="button" class="btn-eye" id="eye-confirm"
-                    onclick="togglePasswordVis('reg-confirm-password','eye-confirm')">
-              <i class="fa-solid fa-eye"></i>
-            </button>
-          </div>
-          <div class="password-match-hint" id="password-match-hint"></div>
-        </div>
-        <div class="auth-error" id="reg-error"></div>
-        <button type="submit" class="btn-primary auth-submit" id="btn-register">
-          <i class="fa-solid fa-user-plus"></i>
-          <span>Crear Cuenta</span>
-        </button>
-      </form>
-
-      <!-- Divider -->
-      <div class="auth-divider">
-        <span>o</span>
+          <div class="auth-error" id="login-error"></div>
+          <button type="submit" class="btn-primary auth-submit" id="btn-login">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Iniciar Sesión</span>
+          </button>
+        </form>
       </div>
 
-      <!-- Guest / Anonymous -->
-      <button class="btn-guest" id="btn-guest-login">
-        <i class="fa-solid fa-user-secret"></i>
-        <span>Continuar como invitado</span>
-      </button>
-      <p class="guest-disclaimer">Sin cuenta &mdash; tus datos se guardan solo en esta sesión</p>
+      <!-- ── PASO 3: Crear Cuenta ── -->
+      <div class="auth-step" id="auth-step-register">
+        <button class="auth-step-back" id="btn-back-from-register">
+          <i class="fa-solid fa-arrow-left"></i> Volver
+        </button>
+        <p class="auth-step-title">Crear Cuenta</p>
+        <form id="form-register" class="auth-form" novalidate>
+          <div class="form-group">
+            <label for="reg-name">Nombre completo</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-user auth-input-icon"></i>
+              <input type="text" id="reg-name" placeholder="Juan García"
+                     required autocomplete="name" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Correo electrónico</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-envelope auth-input-icon"></i>
+              <input type="email" id="reg-email" placeholder="tu@correo.com"
+                     required autocomplete="email" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Contraseña</label>
+            <div class="auth-input-wrap" id="wrap-reg-password">
+              <i class="fa-solid fa-lock auth-input-icon"></i>
+              <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres"
+                     required minlength="6" autocomplete="new-password" />
+              <button type="button" class="btn-eye" id="eye-register"
+                      onclick="togglePasswordVis('reg-password','eye-register')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-confirm-password">Confirmar contraseña</label>
+            <div class="auth-input-wrap" id="wrap-reg-confirm">
+              <i class="fa-solid fa-shield-halved auth-input-icon"></i>
+              <input type="password" id="reg-confirm-password" placeholder="Repite tu contraseña"
+                     required autocomplete="new-password" />
+              <button type="button" class="btn-eye" id="eye-confirm"
+                      onclick="togglePasswordVis('reg-confirm-password','eye-confirm')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <div class="password-match-hint" id="password-match-hint"></div>
+          </div>
+          <div class="auth-error" id="reg-error"></div>
+          <button type="submit" class="btn-primary auth-submit" id="btn-register">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Crear Cuenta</span>
+          </button>
+        </form>
+      </div>
+
     </div>
   </div>
 
