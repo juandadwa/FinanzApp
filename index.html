@@ -135,6 +135,18 @@
           <span>Crear Cuenta</span>
         </button>
       </form>
+
+      <!-- Divider -->
+      <div class="auth-divider">
+        <span>o</span>
+      </div>
+
+      <!-- Guest / Anonymous -->
+      <button class="btn-guest" id="btn-guest-login">
+        <i class="fa-solid fa-user-secret"></i>
+        <span>Continuar como invitado</span>
+      </button>
+      <p class="guest-disclaimer">Sin cuenta &mdash; tus datos se guardan solo en esta sesión</p>
     </div>
   </div>
 
@@ -226,6 +238,16 @@
         <i class="fa-solid fa-bars"></i>
       </button>
       <div class="topbar-title" id="topbar-title">Dashboard</div>
+
+      <!-- Anonymous user banner -->
+      <div class="anon-banner" id="anon-banner" style="display:none">
+        <i class="fa-solid fa-user-secret"></i>
+        <span>Modo invitado &mdash; tus datos se perderán al cerrar sesión</span>
+        <button class="btn-upgrade" id="btn-upgrade-account">
+          <i class="fa-solid fa-user-plus"></i> Crear cuenta
+        </button>
+      </div>
+
       <div class="topbar-actions">
         <button class="btn-primary" id="btn-add-transaction">
           <i class="fa-solid fa-plus"></i>
@@ -526,6 +548,60 @@
           <button type="submit" class="btn-primary">Agregar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: UPGRADE ANONYMOUS ACCOUNT ===== -->
+  <div class="modal-overlay" id="modal-upgrade">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-upgrade-title">
+      <div class="modal-header">
+        <h2 id="modal-upgrade-title">
+          <i class="fa-solid fa-user-plus"></i> Crear cuenta permanente
+        </h2>
+        <button class="modal-close" id="close-upgrade-modal" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" style="margin-bottom:16px">
+          Tus datos actuales se conservarán y podrás acceder desde cualquier dispositivo.
+        </p>
+        <form id="upgrade-form" novalidate>
+          <div class="form-group">
+            <label for="upgrade-name">Nombre completo</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-user auth-input-icon"></i>
+              <input type="text" id="upgrade-name" placeholder="Juan García" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="upgrade-email">Correo electrónico</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-envelope auth-input-icon"></i>
+              <input type="email" id="upgrade-email" placeholder="tu@correo.com" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="upgrade-password">Contraseña</label>
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-lock auth-input-icon"></i>
+              <input type="password" id="upgrade-password" placeholder="Mínimo 6 caracteres" required />
+              <button type="button" class="btn-eye" id="eye-upgrade"
+                      onclick="togglePasswordVis('upgrade-password','eye-upgrade')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="auth-error" id="upgrade-error"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="cancel-upgrade-modal">Cancelar</button>
+            <button type="submit" class="btn-primary" id="btn-confirm-upgrade">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Guardar cuenta</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 

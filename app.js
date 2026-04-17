@@ -136,10 +136,25 @@ auth.onAuthStateChanged(async user => {
     await user.reload().catch(() => {});
     const freshUser = auth.currentUser;
 
+    if (freshUser.isAnonymous) {
+      // Usuario anónimo — no necesita verificación de correo
+      currentUser = freshUser;
+      hideAuthScreen();
+      hideVerificationScreen();
+      document.getElementById('sidebar-user-name').textContent  = 'Invitado';
+      document.getElementById('sidebar-user-email').textContent = 'Sin cuenta registrada';
+      showAnonymousBanner();
+      document.getElementById('filter-month').value = getCurrentMonthKey();
+      state.filters.month = getCurrentMonthKey();
+      setupListeners();
+      navigateTo('dashboard');
+      return;
+    }
+
     if (!freshUser.emailVerified) {
       // Correo no verificado -> mostrar pantalla de verificación
       hideAuthScreen();
-      hideVerificationScreen(); // reset first
+      hideVerificationScreen();
       showVerificationScreen(freshUser);
       return;
     }
@@ -148,6 +163,7 @@ auth.onAuthStateChanged(async user => {
     currentUser = freshUser;
     hideAuthScreen();
     hideVerificationScreen();
+    hideAnonymousBanner();
     document.getElementById('sidebar-user-name').textContent  = freshUser.displayName || 'Mi Cuenta';
     document.getElementById('sidebar-user-email').textContent = freshUser.email;
     document.getElementById('filter-month').value = getCurrentMonthKey();
@@ -158,6 +174,7 @@ auth.onAuthStateChanged(async user => {
     currentUser = null;
     clearListeners();
     hideVerificationScreen();
+    hideAnonymousBanner();
     showAuthScreen();
     if (chartDonut) { chartDonut.destroy(); chartDonut = null; }
     if (chartBar)   { chartBar.destroy();   chartBar   = null; }
@@ -182,6 +199,14 @@ function showVerificationScreen(user) {
 
 function hideVerificationScreen() {
   document.getElementById('verification-screen').classList.remove('open');
+}
+
+function showAnonymousBanner() {
+  document.getElementById('anon-banner').style.display = 'flex';
+}
+
+function hideAnonymousBanner() {
+  document.getElementById('anon-banner').style.display = 'none';
 }
 
 function showAuthTab(tab) {
@@ -315,6 +340,77 @@ function setupAuthForms() {
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await auth.signOut();
     showToast('Sesión cerrada', 'info');
+  });
+
+  // ---- Anónimo / Invitado ----
+  document.getElementById('btn-guest-login').addEventListener('click', async () => {
+    const btn  = document.getElementById('btn-guest-login');
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Entrando...';
+    try {
+      await auth.signInAnonymously();
+      // onAuthStateChanged se encarga del resto
+    } catch (err) {
+      console.error('[Anonymous]', err);
+      showToast('No se pudo entrar como invitado. Intenta de nuevo.', 'error');
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Continuar como invitado';
+    }
+  });
+
+  // ---- Upgrade: convertir cuenta anónima en cuenta permanente ----
+  document.getElementById('btn-upgrade-account').addEventListener('click', () => {
+    document.getElementById('upgrade-name').value     = '';
+    document.getElementById('upgrade-email').value    = '';
+    document.getElementById('upgrade-password').value = '';
+    document.getElementById('upgrade-error').textContent = '';
+    document.getElementById('modal-upgrade').classList.add('open');
+  });
+
+  document.getElementById('upgrade-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name     = document.getElementById('upgrade-name').value.trim();
+    const email    = document.getElementById('upgrade-email').value.trim();
+    const password = document.getElementById('upgrade-password').value;
+    const errEl    = document.getElementById('upgrade-error');
+    const btn      = document.getElementById('btn-confirm-upgrade');
+    const span     = btn.querySelector('span');
+    errEl.textContent = '';
+
+    if (!name)           { errEl.textContent = 'Ingresa tu nombre.'; return; }
+    if (!email)          { errEl.textContent = 'Ingresa tu correo.'; return; }
+    if (password.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+
+    btn.disabled = true;
+    span.textContent = 'Guardando...';
+
+    try {
+      // Vincular cuenta anónima con credenciales reales (preserva todos los datos)
+      const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+      const result     = await auth.currentUser.linkWithCredential(credential);
+      const user       = result.user;
+
+      // Actualizar nombre y perfil en Firestore
+      await user.updateProfile({ displayName: name });
+      await db.collection('users').doc(user.uid).set({
+        name, email, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      // Enviar verificación de correo
+      await user.sendEmailVerification();
+
+      document.getElementById('modal-upgrade').classList.remove('open');
+      hideAnonymousBanner();
+
+      // Mostrar pantalla de verificación
+      showVerificationScreen(user);
+      showToast('¡Cuenta creada! Verifica tu correo para continuar.', 'success');
+    } catch (err) {
+      console.error('[Upgrade]', err);
+      errEl.textContent = FIREBASE_ERRORS[err.code] || 'Error al crear la cuenta. Intenta de nuevo.';
+      btn.disabled = false;
+      span.textContent = 'Guardar cuenta';
+    }
   });
 
   // ---- Delete Account ----
@@ -829,7 +925,7 @@ function openSavingsModal(goalId) {
 function closeSavingsModal() { document.getElementById('modal-add-savings').classList.remove('open'); }
 
 function setupModalOverlayClose() {
-  ['modal-transaction','modal-goal','modal-add-savings','modal-delete-account'].forEach(id => {
+  ['modal-transaction','modal-goal','modal-add-savings','modal-delete-account','modal-upgrade'].forEach(id => {
     document.getElementById(id).addEventListener('click', e => {
       if (e.target.id === id) document.getElementById(id).classList.remove('open');
     });
@@ -998,6 +1094,10 @@ function init() {
     document.getElementById('modal-delete-account').classList.remove('open'));
   document.getElementById('cancel-delete-modal').addEventListener('click', () =>
     document.getElementById('modal-delete-account').classList.remove('open'));
+  document.getElementById('close-upgrade-modal').addEventListener('click', () =>
+    document.getElementById('modal-upgrade').classList.remove('open'));
+  document.getElementById('cancel-upgrade-modal').addEventListener('click', () =>
+    document.getElementById('modal-upgrade').classList.remove('open'));
 
   // Type toggles
   document.getElementById('toggle-income').addEventListener('click',  () => setTransactionType('income'));
